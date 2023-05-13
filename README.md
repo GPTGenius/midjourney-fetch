@@ -1,5 +1,5 @@
 # midjourney-fetch
-[![npm version](https://img.shields.io/npm/v/midjouryney-fetch.svg)](https://www.npmjs.com/package/midjouryney-fetch) ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/GPTGenius/midjouryney-fetch/ci.yml?branch=main) ![node-current (scoped)](https://img.shields.io/node/v/midjouryney-fetch) ![GitHub](https://img.shields.io/github/license/GPTGenius/midjouryney-fetch)
+[![npm version](https://img.shields.io/npm/v/midjourney-fetch.svg)](https://www.npmjs.com/package/midjourney-fetch) ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/GPTGenius/midjourney-fetch/ci.yml?branch=main) ![node-current (scoped)](https://img.shields.io/node/v/midjourney-fetch) ![GitHub](https://img.shields.io/github/license/GPTGenius/midjourney-fetch)
 
 Fetch api for midjournery on discord
 
@@ -7,13 +7,13 @@ Fetch api for midjournery on discord
 ```typescript
 import { Midjourney } from 'midjourney-fetch'
 
-const midjouryney = new Midjouryney({
+const midjourney = new Midjourney({
   channelId: 'your channelId',
   serverId: 'your serverId',
   discordToken: 'your discordToken',
 })
 
-const images = await midjouryney.imagine('your prompt')
+const images = await midjourney.imagine('your prompt')
 
 console.log(images[0].url)
 ```
