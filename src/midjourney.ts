@@ -90,7 +90,21 @@ export class Midjourney {
       },
     });
     if (res.status >= 400) {
-      throw new Error(`[${res.status}]Interactions failed`);
+      let msg = '';
+      try {
+        const data = await res.json();
+        if (this.debugger) {
+          this.log('Request failed', JSON.stringify(data));
+        }
+        msg = data?.message;
+      } catch (e) {
+        // catch JSON error
+      }
+      if (msg) {
+        throw new Error(msg);
+      } else {
+        throw new Error(`Interactions failed with ${res.status}`);
+      }
     }
   }
 
