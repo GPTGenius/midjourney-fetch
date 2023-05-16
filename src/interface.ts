@@ -5,7 +5,7 @@ export type DeepPartial<T> = {
 export interface MidjourneyProps {
   channelId: string;
   serverId: string;
-  discordToken: string;
+  token: string;
   timeout?: number; // default timeout: 2 min
 }
 

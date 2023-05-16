@@ -10,7 +10,7 @@ import { Midjourney } from 'midjourney-fetch'
 const midjourney = new Midjourney({
   channelId: 'your channelId',
   serverId: 'your serverId',
-  discordToken: 'your discordToken',
+  token: 'your token',
 })
 
 const images = await midjourney.imagine('your prompt')

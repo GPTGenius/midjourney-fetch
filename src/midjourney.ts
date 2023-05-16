@@ -11,22 +11,17 @@ export class Midjourney {
 
   protected readonly serverId: string;
 
-  protected readonly discordToken: string;
+  protected readonly token: string;
 
   timeout: number;
 
   debugger: boolean;
 
   constructor(props: MidjourneyProps) {
-    const {
-      channelId,
-      serverId,
-      discordToken,
-      timeout = configs.timeout,
-    } = props;
+    const { channelId, serverId, token, timeout = configs.timeout } = props;
     this.channelId = channelId;
     this.serverId = serverId;
-    this.discordToken = discordToken;
+    this.token = token;
     this.timeout = timeout;
     this.debugger = false;
   }
@@ -86,39 +81,38 @@ export class Midjourney {
       body: JSON.stringify(payload),
       headers: {
         'Content-Type': 'application/json',
-        Authorization: this.discordToken,
+        Authorization: this.token,
       },
     });
     if (res.status >= 400) {
-      let msg = '';
       try {
         const data = await res.json();
         if (this.debugger) {
-          this.log('Request failed', JSON.stringify(data));
+          this.log('Interactions failed', JSON.stringify(data));
         }
-        msg = data?.message;
+        if (data?.message) {
+          throw new Error(data.message);
+        }
       } catch (e) {
         // catch JSON error
       }
-      if (msg) {
-        throw new Error(msg);
-      } else {
-        throw new Error(`Interactions failed with ${res.status}`);
-      }
+      throw new Error(`Interactions failed with ${res.status}`);
     }
   }
 
-  async getMessages() {
+  async getMessage(prompt: string) {
     const res = await fetch(
       `https://discord.com/api/v10/channels/${this.channelId}/messages?limit=50`,
       {
         headers: {
-          Authorization: this.discordToken,
+          Authorization: this.token,
         },
       }
     );
     const data: MessageItem[] = await res.json();
-    return data;
+    const message = findMessageByPrompt(data, prompt);
+    this.log(JSON.stringify(message), '\n');
+    return message;
   }
 
   /**
@@ -133,9 +127,8 @@ export class Midjourney {
       try {
         count += 1;
         await new Promise((res) => setTimeout(res, configs.interval));
-        const data = await this.getMessages();
-        const message = findMessageByPrompt(data, prompt);
-        this.log(count, JSON.stringify(message), '\n');
+        this.log(count);
+        const message = await this.getMessage(prompt);
         if (message && !isInProgress(message)) {
           [image] = message.attachments;
           break;
