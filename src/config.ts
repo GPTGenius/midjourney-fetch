@@ -1,4 +1,4 @@
 export const configs = {
-  timeout: 2 * 60 * 1000, // 2min
-  interval: 2 * 1000, // every 2 second
+  timeout: 5 * 60 * 1000, // 5 min
+  interval: 15 * 1000, // every 15 second
 };

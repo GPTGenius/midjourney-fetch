@@ -6,7 +6,8 @@ export interface MidjourneyProps {
   channelId: string;
   serverId: string;
   token: string;
-  timeout?: number; // default timeout: 2 min
+  timeout?: number; // default timeout: 5 min
+  interval?: number; // default interval: 15s
 }
 
 export interface MessageAttachment {

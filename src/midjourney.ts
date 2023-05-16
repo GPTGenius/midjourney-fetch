@@ -15,14 +15,25 @@ export class Midjourney {
 
   timeout: number;
 
+  interval: number;
+
   debugger: boolean;
 
   constructor(props: MidjourneyProps) {
-    const { channelId, serverId, token, timeout = configs.timeout } = props;
+    const {
+      channelId,
+      serverId,
+      token,
+      timeout = configs.timeout,
+      interval = configs.interval,
+    } = props;
     this.channelId = channelId;
     this.serverId = serverId;
     this.token = token;
+
     this.timeout = timeout;
+    this.interval = interval;
+
     this.debugger = false;
   }
 
@@ -120,13 +131,13 @@ export class Midjourney {
    */
   async imagine(prompt: string) {
     await this.interactions(prompt);
-    const times = this.timeout / configs.interval;
+    const times = this.timeout / this.interval;
     let count = 0;
     let image: MessageAttachment | null = null;
     while (count < times) {
       try {
         count += 1;
-        await new Promise((res) => setTimeout(res, configs.interval));
+        await new Promise((res) => setTimeout(res, this.interval));
         this.log(count);
         const message = await this.getMessage(prompt);
         if (message && !isInProgress(message)) {
