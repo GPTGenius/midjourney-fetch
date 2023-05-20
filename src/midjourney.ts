@@ -96,18 +96,17 @@ export class Midjourney {
       },
     });
     if (res.status >= 400) {
+      let message = '';
       try {
         const data = await res.json();
         if (this.debugger) {
           this.log('Interactions failed', JSON.stringify(data));
         }
-        if (data?.message) {
-          throw new Error(data.message);
-        }
+        message = data?.message;
       } catch (e) {
         // catch JSON error
       }
-      throw new Error(`Interactions failed with ${res.status}`);
+      throw new Error(message || `Interactions failed with ${res.status}`);
     }
   }
 
