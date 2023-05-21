@@ -1,6 +1,6 @@
 {
   "name": "midjourney-fetch",
-  "version": "0.1.4",
+  "version": "1.0.0-beta.0",
   "description": "",
   "type": "module",
   "main": "./dist/index.js",
@@ -55,5 +55,8 @@
       "eslint --fix --quiet",
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "@sapphire/snowflake": "^3.5.1"
   }
 }

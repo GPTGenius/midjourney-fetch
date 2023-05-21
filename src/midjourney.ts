@@ -1,8 +1,10 @@
-import { configs } from './config';
+import { DiscordSnowflake } from '@sapphire/snowflake';
+import { configs, defaultSessionId, midjourneyBotConfigs } from './config';
 import type {
-  MessageAttachment,
   MessageItem,
+  MessageTypeProps,
   MidjourneyProps,
+  UpscaleProps,
 } from './interface';
 import { findMessageByPrompt, isInProgress } from './utils';
 
@@ -43,16 +45,16 @@ export class Midjourney {
     }
   }
 
-  async interactions(prompt: string) {
+  async createImage(prompt: string) {
     const payload = {
       type: 2,
-      application_id: '936929561302675456',
+      application_id: midjourneyBotConfigs.applicationId,
       guild_id: this.serverId,
       channel_id: this.channelId,
-      session_id: 'ab318945494d4aa96c97ce6fce934b97',
+      session_id: defaultSessionId,
       data: {
-        version: '1077969938624553050',
-        id: '938956540159881230',
+        version: midjourneyBotConfigs.version,
+        id: midjourneyBotConfigs.id,
         name: 'imagine',
         type: 1,
         options: [
@@ -63,9 +65,9 @@ export class Midjourney {
           },
         ],
         application_command: {
-          id: '938956540159881230',
-          application_id: '936929561302675456',
-          version: '1077969938624553050',
+          id: midjourneyBotConfigs.id,
+          application_id: midjourneyBotConfigs.applicationId,
+          version: midjourneyBotConfigs.version,
           default_permission: true,
           default_member_permissions: null,
           type: 1,
@@ -85,6 +87,7 @@ export class Midjourney {
         },
         attachments: [],
       },
+      nonce: DiscordSnowflake.generate().toString(),
     };
 
     const res = await fetch(`https://discord.com/api/v9/interactions`, {
@@ -100,17 +103,55 @@ export class Midjourney {
       try {
         const data = await res.json();
         if (this.debugger) {
-          this.log('Interactions failed', JSON.stringify(data));
+          this.log('Create image failed', JSON.stringify(data));
         }
         message = data?.message;
       } catch (e) {
         // catch JSON error
       }
-      throw new Error(message || `Interactions failed with ${res.status}`);
+      throw new Error(message || `Create image failed with ${res.status}`);
     }
   }
 
-  async getMessage(prompt: string) {
+  async createUpscale({ messageId, index, hash, customId }: UpscaleProps) {
+    const payload = {
+      type: 3,
+      nonce: DiscordSnowflake.generate().toString(),
+      guild_id: this.serverId,
+      channel_id: this.channelId,
+      message_flags: 0,
+      message_id: messageId,
+      application_id: midjourneyBotConfigs.applicationId,
+      session_id: defaultSessionId,
+      data: {
+        component_type: 2,
+        custom_id: customId || `MJ::JOB::upsample::${index}::${hash}`,
+      },
+    };
+    const res = await fetch(`https://discord.com/api/v9/interactions`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: this.token,
+      },
+    });
+    if (res.status >= 400) {
+      let message = '';
+      try {
+        const data = await res.json();
+        if (this.debugger) {
+          this.log('Create upscale failed', JSON.stringify(data));
+        }
+        message = data?.message;
+      } catch (e) {
+        // catch JSON error
+      }
+      throw new Error(message || `Create upscale failed with ${res.status}`);
+    }
+  }
+
+  async getMessage(prompt: string, options?: MessageTypeProps) {
     const res = await fetch(
       `https://discord.com/api/v10/channels/${this.channelId}/messages?limit=50`,
       {
@@ -120,7 +161,7 @@ export class Midjourney {
       }
     );
     const data: MessageItem[] = await res.json();
-    const message = findMessageByPrompt(data, prompt);
+    const message = findMessageByPrompt(data, prompt, options);
     this.log(JSON.stringify(message), '\n');
     return message;
   }
@@ -129,24 +170,49 @@ export class Midjourney {
    * Same with /imagine command
    */
   async imagine(prompt: string) {
-    await this.interactions(prompt);
+    await this.createImage(prompt);
     const times = this.timeout / this.interval;
     let count = 0;
-    let image: MessageAttachment | null = null;
+    let result: MessageItem | undefined;
     while (count < times) {
       try {
         count += 1;
         await new Promise((res) => setTimeout(res, this.interval));
-        this.log(count);
+        this.log(count, 'imagine');
         const message = await this.getMessage(prompt);
         if (message && !isInProgress(message)) {
-          [image] = message.attachments;
+          result = message;
           break;
         }
       } catch {
         continue;
       }
     }
-    return image ? [image] : [];
+    return result;
+  }
+
+  async upscale({ prompt, ...params }: UpscaleProps & { prompt: string }) {
+    await this.createUpscale(params);
+    const times = this.timeout / this.interval;
+    let count = 0;
+    let result: MessageItem | undefined;
+    while (count < times) {
+      try {
+        count += 1;
+        await new Promise((res) => setTimeout(res, this.interval));
+        this.log(count, 'upscale');
+        const message = await this.getMessage(prompt, {
+          type: 'upscale',
+          index: params.index,
+        });
+        if (message && !isInProgress(message)) {
+          result = message;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return result;
   }
 }

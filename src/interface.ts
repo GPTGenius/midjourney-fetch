@@ -20,6 +20,14 @@ export interface MessageAttachment {
   id: string;
 }
 
+export interface MessageComponent {
+  custom_id: string; // starts with MJ::JOB::upsample or MJ::JOB::variation
+  label?: 'U1' | 'U2' | 'U3' | 'U4' | 'V1' | 'V2' | 'V3' | 'V4';
+  emoji?: { name: string };
+  style: number; // 1 - used; 2 - free
+  type: number;
+}
+
 export interface MessageItem {
   application_id: string;
   attachments: MessageAttachment[];
@@ -30,4 +38,27 @@ export interface MessageItem {
   channel_id: string;
   content: string;
   id: string;
+  type: number; // 19 - upscale; 0 - imagine
+  components: Array<{
+    components: MessageComponent[];
+    type: number;
+  }>;
+}
+
+export type MessageType = 'imagine' | 'upscale';
+
+export type MessageTypeProps =
+  | {
+      type: Extract<MessageType, 'upscale'>;
+      index: number;
+    }
+  | {
+      type?: Extract<MessageType, 'imagine'>;
+    };
+
+export interface UpscaleProps {
+  messageId: string;
+  index: number;
+  hash?: string;
+  customId?: string;
 }

@@ -1,15 +1,26 @@
-import { type MessageItem } from './interface';
+import { midjourneyBotConfigs } from './config';
+import type { MessageTypeProps, MessageItem } from './interface';
 
 export const findMessageByPrompt = (
   messages: MessageItem[],
-  prompt: string
+  prompt: string,
+  options?: MessageTypeProps
 ) => {
   // trim and merge spaces
   const filterPrompt = prompt.split(' ').filter(Boolean).join(' ');
+  if (options?.type === 'upscale') {
+    return messages.find(
+      (msg) =>
+        msg.type === 19 &&
+        msg.content.includes(filterPrompt) &&
+        msg.content.includes(`Image #${options.index}`) &&
+        msg.author.id === midjourneyBotConfigs.applicationId
+    );
+  }
   return messages.find(
     (msg) =>
       msg.content.includes(filterPrompt) &&
-      msg.author.id === '936929561302675456'
+      msg.author.id === midjourneyBotConfigs.applicationId
   );
 };
 
