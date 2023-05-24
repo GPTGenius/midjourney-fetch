@@ -2,11 +2,16 @@ import { DiscordSnowflake } from '@sapphire/snowflake';
 import { configs, defaultSessionId, midjourneyBotConfigs } from './config';
 import type {
   MessageItem,
+  MessageType,
   MessageTypeProps,
   MidjourneyProps,
   UpscaleProps,
 } from './interface';
-import { findMessageByPrompt, isInProgress } from './utils';
+import {
+  findMessageByPrompt,
+  getHashFromCustomId,
+  isInProgress,
+} from './utils';
 
 export class Midjourney {
   protected readonly channelId: string;
@@ -43,6 +48,17 @@ export class Midjourney {
     if (this.debugger) {
       console.log(...args);
     }
+  }
+
+  async interactions(payload: any) {
+    return fetch(`https://discord.com/api/v9/interactions`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: this.token,
+      },
+    });
   }
 
   async createImage(prompt: string) {
@@ -90,14 +106,7 @@ export class Midjourney {
       nonce: DiscordSnowflake.generate().toString(),
     };
 
-    const res = await fetch(`https://discord.com/api/v9/interactions`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.token,
-      },
-    });
+    const res = await this.interactions(payload);
     if (res.status >= 400) {
       let message = '';
       try {
@@ -113,7 +122,10 @@ export class Midjourney {
     }
   }
 
-  async createUpscale({ messageId, index, hash, customId }: UpscaleProps) {
+  async createUpscaleOrVariation(
+    type: Exclude<MessageType, 'imagine'>,
+    { messageId, customId }: UpscaleProps
+  ) {
     const payload = {
       type: 3,
       nonce: DiscordSnowflake.generate().toString(),
@@ -125,33 +137,26 @@ export class Midjourney {
       session_id: defaultSessionId,
       data: {
         component_type: 2,
-        custom_id: customId || `MJ::JOB::upsample::${index}::${hash}`,
+        custom_id: customId,
       },
     };
-    const res = await fetch(`https://discord.com/api/v9/interactions`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.token,
-      },
-    });
+    const res = await this.interactions(payload);
     if (res.status >= 400) {
       let message = '';
       try {
         const data = await res.json();
         if (this.debugger) {
-          this.log('Create upscale failed', JSON.stringify(data));
+          this.log(`Create ${type} failed`, JSON.stringify(data));
         }
         message = data?.message;
       } catch (e) {
         // catch JSON error
       }
-      throw new Error(message || `Create upscale failed with ${res.status}`);
+      throw new Error(message || `Create ${type} failed with ${res.status}`);
     }
   }
 
-  async getMessage(prompt: string, options?: MessageTypeProps) {
+  async getMessage(prompt: string, options: MessageTypeProps) {
     const res = await fetch(
       `https://discord.com/api/v10/channels/${this.channelId}/messages?limit=50`,
       {
@@ -170,7 +175,10 @@ export class Midjourney {
    * Same with /imagine command
    */
   async imagine(prompt: string) {
+    const timestamp = new Date().toISOString();
+
     await this.createImage(prompt);
+
     const times = this.timeout / this.interval;
     let count = 0;
     let result: MessageItem | undefined;
@@ -179,7 +187,7 @@ export class Midjourney {
         count += 1;
         await new Promise((res) => setTimeout(res, this.interval));
         this.log(count, 'imagine');
-        const message = await this.getMessage(prompt);
+        const message = await this.getMessage(prompt, { timestamp });
         if (message && !isInProgress(message)) {
           result = message;
           break;
@@ -192,10 +200,19 @@ export class Midjourney {
   }
 
   async upscale({ prompt, ...params }: UpscaleProps & { prompt: string }) {
-    await this.createUpscale(params);
+    const { index } = getHashFromCustomId('upscale', params.customId);
     const times = this.timeout / this.interval;
     let count = 0;
     let result: MessageItem | undefined;
+
+    if (!index) {
+      throw new Error('Create upscale failed with 400, unknown customId');
+    }
+
+    const timestamp = new Date().toISOString();
+
+    await this.createUpscaleOrVariation('upscale', params);
+
     while (count < times) {
       try {
         count += 1;
@@ -203,7 +220,43 @@ export class Midjourney {
         this.log(count, 'upscale');
         const message = await this.getMessage(prompt, {
           type: 'upscale',
-          index: params.index,
+          index,
+          timestamp,
+        });
+        if (message && !isInProgress(message)) {
+          result = message;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return result;
+  }
+
+  async variation({ prompt, ...params }: UpscaleProps & { prompt: string }) {
+    const { index } = getHashFromCustomId('variation', params.customId);
+    const times = this.timeout / this.interval;
+    let count = 0;
+    let result: MessageItem | undefined;
+
+    if (!index) {
+      throw new Error('Create variation failed with 400, unknown customId');
+    }
+
+    const timestamp = new Date().toISOString();
+
+    await this.createUpscaleOrVariation('variation', params);
+
+    while (count < times) {
+      try {
+        count += 1;
+        await new Promise((res) => setTimeout(res, this.interval));
+        this.log(count, 'variation');
+        const message = await this.getMessage(prompt, {
+          type: 'variation',
+          index,
+          timestamp,
         });
         if (message && !isInProgress(message)) {
           result = message;

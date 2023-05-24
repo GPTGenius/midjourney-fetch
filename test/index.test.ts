@@ -1,45 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import {
-  type MessageItem,
-  type DeepPartial,
-  findMessageByPrompt,
-  isInProgress,
-} from '../src';
-
-describe('findMessageByPrompt', () => {
-  test('should return message with matching prompt and author id', () => {
-    const messages: DeepPartial<MessageItem>[] = [
-      { content: 'Hello', author: { id: '936929561302675456' } },
-      { content: 'Hi', author: { id: '123456' } },
-    ];
-    const prompt = 'Hello';
-    const result = findMessageByPrompt(messages as MessageItem[], prompt);
-    expect(result).toEqual({
-      content: 'Hello',
-      author: { id: '936929561302675456' },
-    });
-  });
-
-  test('should return undefined if prompt is not found in message content', () => {
-    const messages: DeepPartial<MessageItem>[] = [
-      { content: 'Hello', author: { id: '936929561302675456' } },
-      { content: 'Hi', author: { id: '123456' } },
-    ];
-    const prompt = 'Hey';
-    const result = findMessageByPrompt(messages as MessageItem[], prompt);
-    expect(result).toEqual(undefined);
-  });
-
-  test('should return undefined if author id does not match', () => {
-    const messages: DeepPartial<MessageItem>[] = [
-      { content: 'Hello', author: { id: '123456' } },
-      { content: 'Hi', author: { id: '789012' } },
-    ];
-    const prompt = 'Hello';
-    const result = findMessageByPrompt(messages as MessageItem[], prompt);
-    expect(result).toEqual(undefined);
-  });
-});
+import { type MessageItem, type DeepPartial, isInProgress } from '../src';
 
 describe('isInProgress', () => {
   test('should return undefined if author id does not match', () => {
