@@ -43,22 +43,33 @@ export interface MessageItem {
     components: MessageComponent[];
     type: number;
   }>;
+  message_reference?: {
+    channel_id: string;
+    guild_id: string;
+    message_id: string;
+  };
+  timestamp?: string;
 }
 
-export type MessageType = 'imagine' | 'upscale';
+export type MessageType = 'imagine' | 'upscale' | 'variation';
 
-export type MessageTypeProps =
+export type MessageTypeProps = {
+  timestamp: string;
+} & (
+  | {
+      type: Extract<MessageType, 'variation'>;
+      index: number;
+    }
   | {
       type: Extract<MessageType, 'upscale'>;
       index: number;
     }
   | {
       type?: Extract<MessageType, 'imagine'>;
-    };
+    }
+);
 
 export interface UpscaleProps {
   messageId: string;
-  index: number;
-  hash?: string;
-  customId?: string;
+  customId: string;
 }
